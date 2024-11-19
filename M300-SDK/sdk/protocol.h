@@ -4,9 +4,6 @@
 #include"define.h"
 
 #define TRANS_BLOCK	0x200
-#define RAW_ANG_BOTTOM	1
-#define RAW_ANG_TOP		2
-#define RAW_ANG_READY	(RAW_ANG_BOTTOM	| RAW_ANG_TOP)
 #define PACK_PREAMLE 0X484C
 #define DRIFT_RD_PACK 0x4357
 #define DRIFT_MAGIC 0xD81F1CA1
@@ -33,21 +30,6 @@ typedef struct {
 } TransBuf;
 
 
-struct RawPoint
-{
-	uint64_t timestamp;
-	int32_t angles[2];
-	uint16_t dist;
-	uint8_t energy;
-	uint8_t mirror;
-
-};
-
-enum ColorMode {
-	COLOR_ENERGY,
-	COLOR_TIME
-};
-
 struct CmdHeader
 {
 	uint16_t sign;
@@ -64,18 +46,9 @@ typedef struct
 	double Gyro[3];
 } IMUDrift;
 
-typedef struct {
-	int32_t top[8];
-	int32_t min_pitch;
-	int32_t max_pitch;
-	int32_t bottom;
-	int32_t offset;
-	int32_t lookup;
-} MirrorDrift;
 
 typedef struct {
 	IMUDrift imu;
-	MirrorDrift mirror;
 } Drifts;
 
 typedef struct
