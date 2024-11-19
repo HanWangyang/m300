@@ -898,22 +898,7 @@ uint16_t BlueSeaLidarSDK::Decode(uint16_t n, const uint8_t* buf, std::queue<IIM4
 	{
 		uint8_t ch = buf[idx];
 
-		if (ch == 0xdd)
-		{
-			if (idx + 4 > n) break;
-			//AddRawPoint(buf + idx);
-			idx += 4;
-		}
-		else if (ch == 0xdc || ch == 0xde)
-		{
-			if (idx + 14 > n) break;
-			uint16_t v = buf[idx + 4];
-			v = (v << 8) + buf[idx + 5];
-			uint32_t ts[2];
-			memcpy(ts, buf + idx + 6, 8);
-			idx += 14;
-		}
-		else if (ch == 0xd3) {
+		if (ch == 0xd3) {
 			if (idx + 25 > n) break;
 			 
 			IIM42652_FIFO_PACKET_16_ST* imu= (IIM42652_FIFO_PACKET_16_ST*)(buf + idx + 1);
@@ -921,11 +906,6 @@ uint16_t BlueSeaLidarSDK::Decode(uint16_t n, const uint8_t* buf, std::queue<IIM4
 			imu_data.push(*imu);
 			imu_mutex.unlock();
 			idx += 25;
-		}
-		else if (ch == 0xee)
-		{
-			if (idx + 6 > n) break;
-			idx += 6;
 		}
 		else {
 			drop[ndrop++] = ch;
