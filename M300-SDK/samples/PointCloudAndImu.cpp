@@ -47,20 +47,20 @@ int main()
 	BlueSeaLidarSDK::getInstance()->SetPointCloudCallback(devID,PointCloudCallback, nullptr);
 	BlueSeaLidarSDK::getInstance()->SetImuDataCallback(devID, ImuDataCallback, nullptr);
 	BlueSeaLidarSDK::getInstance()->SetLogDataCallback(devID, LogDataCallback, nullptr);
-
+	while (BlueSeaLidarSDK::getInstance()->read_calib(lidar_addr, lidar_port) != 0);
 	BlueSeaLidarSDK::getInstance()->ConnectLidar(devID);
 
 
 	//multiple lidars  ,please make sure lidar ip and   localport  is must be not same 
 
-	char lidar_addr2[] = "192.168.1.10";
-	int lidar_port2 = 6543;
-	int listen_port2 = 6669;
-	int devID2 = BlueSeaLidarSDK::getInstance()->AddLidar(lidar_addr2, lidar_port2, listen_port2); 
-	BlueSeaLidarSDK::getInstance()->SetPointCloudCallback(devID2, PointCloudCallback, nullptr);
-	BlueSeaLidarSDK::getInstance()->SetImuDataCallback(devID2, ImuDataCallback, nullptr);
-	BlueSeaLidarSDK::getInstance()->SetLogDataCallback(devID2, LogDataCallback, nullptr);
-	BlueSeaLidarSDK::getInstance()->ConnectLidar(devID2);
+	//char lidar_addr2[] = "192.168.1.10";
+	//int lidar_port2 = 6543;
+	//int listen_port2 = 6669;
+	//int devID2 = BlueSeaLidarSDK::getInstance()->AddLidar(lidar_addr2, lidar_port2, listen_port2); 
+	//BlueSeaLidarSDK::getInstance()->SetPointCloudCallback(devID2, PointCloudCallback, nullptr);
+	//BlueSeaLidarSDK::getInstance()->SetImuDataCallback(devID2, ImuDataCallback, nullptr);
+	//BlueSeaLidarSDK::getInstance()->SetLogDataCallback(devID2, LogDataCallback, nullptr);
+	//BlueSeaLidarSDK::getInstance()->ConnectLidar(devID2);
 
 	while (1)
 	{

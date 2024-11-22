@@ -1,0 +1,19 @@
+<launch>
+  <node name="M300" pkg="bluesea_m300" type="bluesea_m300_node" output="screen">
+
+    <param name="frame_id" value="map" />
+
+    <param name="topic_pointcloud" value="pointcloud" />
+    <param name="output_pointcloud" value= "true"/>
+
+    <param name="topic_custommsg" value="custommsg" />
+    <param name="output_custommsg" value="false"/>
+
+    <param name="topic_imu" value="imu" />
+    <param name="output_imu" value="false"/>
+   
+    <param name="lidar_port" value="6543" />
+    <param name="local_port" value="6668" />
+    <param name="lidar_ip" value="192.168.1.37" />
+  </node>
+</launch>

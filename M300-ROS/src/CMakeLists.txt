@@ -1,0 +1,43 @@
+cmake_minimum_required(VERSION 3.0.2)
+project(bluesea_m300)
+add_compile_options(-std=c++11)
+
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  sensor_msgs
+  message_generation
+)
+
+#find_package(Boost REQUIRED COMPONENTS system)
+
+add_message_files(
+  FILES
+  CustomMsg.msg
+  CustomPoint.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  geometry_msgs
+)
+
+catkin_package(
+CATKIN_DEPENDS message_runtime
+)
+
+include_directories(
+  ${catkin_INCLUDE_DIRS}
+
+)
+set(BLUESEA_SDK_PATH "./sdk/")
+FILE(GLOB BLUESEA_SDK_SRC
+   "${BLUESEA_SDK_PATH}/*.cpp",
+   "${BLUESEA_SDK_PATH}/*.c"
+)
+add_executable(${PROJECT_NAME}_node  ./src/node.cpp ${BLUESEA_SDK_SRC})
+target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES})
+
+install(TARGETS ${PROJECT_NAME}_node
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
