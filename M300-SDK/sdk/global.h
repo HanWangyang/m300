@@ -39,6 +39,7 @@ int open_socket_port(int port,bool isRepeat);
 int closefd(int __fd,bool isSocket);
 int getLastError();
 uint64_t GetTimeStamp(timeval* tv,bool isTimeStamp_M);
+std::string getCurrentTime();
 }
 namespace CommunicationAPI {
 	void  send_cmd_udp(int fd_udp, const char* dev_ip, int dev_port, int cmd, int sn, int len, const void* snd_buf);

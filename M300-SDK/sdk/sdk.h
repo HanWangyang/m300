@@ -9,7 +9,7 @@
 #include<string>
 #include"protocol.h"
 
-#define M300_E_SDKVERSION "1.0" // SDK版本号
+#define M300_E_SDKVERSION "V1.1_20241126" // SDK版本号
 #define ONE_FRAME_POINT_NUM 64*30*12
 
 
@@ -83,8 +83,8 @@ struct RunConfig
 {
 	int ID;
 	std::thread  thread_subData;
-	std::thread  thread_pubCloud;
-	std::thread  thread_pubImu;
+	//std::thread  thread_pubCloud;
+	//std::thread  thread_pubImu;
 	LidarCloudPointCallback  cb_cloudpoint;
 	void *cloudpoint;
 	LidarImuDataCallback cb_imudata;
@@ -96,15 +96,15 @@ struct RunConfig
 	int lidar_port;
 	int listen_port;
 	std::vector<LidarCloudPointData> cloud_data;
-	std::vector<LidarCloudPointData> cloud_data_cache;
+	//std::vector<LidarCloudPointData> cloud_data_cache;
 
 	std::queue<IIM42652_FIFO_PACKET_16_ST> imu_data;
-	std::mutex data_mutex;
-	std::mutex imu_mutex;
+	//std::mutex data_mutex;
+	//std::mutex imu_mutex;
 	IMUDrift  imu_drift;
 	uint32_t frame_cnt;
 	uint64_t frame_firstpoint_timestamp;  //everyframe  first point timestamp
-	uint64_t frame_firstpoint_timestamp_cache;
+	//uint64_t frame_firstpoint_timestamp_cache;
 	int action;
 	int send_len;
 	std::string send_buf;
@@ -195,7 +195,7 @@ public:
 	int read_calib(const char* lidar_ip, int port);
 	int QueryIDByIp(std::string ip);
 	RunConfig*getConfig(int ID);
-	uint16_t Decode(uint16_t n, const uint8_t* buf, std::queue<IIM42652_FIFO_PACKET_16_ST>&imu_data, std::mutex &imu_mutex);
+	uint16_t Decode(uint16_t n, const uint8_t* buf, std::queue<IIM42652_FIFO_PACKET_16_ST>&imu_data/*, std::mutex &imu_mutex*/);
 	void AddPacketToList(const BlueSeaLidarEthernetPacket* bluesea, std::vector<LidarCloudPointData> &cloud_data,uint64_t first_timestamp);
 	bool firmwareUpgrade_udp(std::string  ip, int port, std::string path, std::string &error);
 protected:

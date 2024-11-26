@@ -50,8 +50,8 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData
   {
     return;
   }
-   printf("point cloud handle: %u, data_num: %d, data_type: %d, length: %d, frame_counter: %d\n",
-   handle, data->dot_num, data->data_type, data->length, data->frame_cnt);
+   //printf("point cloud handle: %u, data_num: %d, data_type: %d, length: %d, frame_counter: %d\n",
+   //handle, data->dot_num, data->data_type, data->length, data->frame_cnt);
   if (data->data_type == LIDARPOINTCLOUD)
   {
     LidarCloudPointData *p_point_data = (LidarCloudPointData *)data->data;

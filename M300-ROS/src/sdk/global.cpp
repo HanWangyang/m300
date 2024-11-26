@@ -484,6 +484,18 @@ uint64_t SystemAPI::GetTimeStamp(timeval *tv, bool isTimeStamp_M)
     else
         return tv->tv_sec;
 }
+
+#include<chrono>
+#include<ctime>
+std::string SystemAPI::getCurrentTime()
+{
+    auto now = std::chrono::system_clock::now();
+    std::time_t t=std::chrono::system_clock::to_time_t(now);
+    std::tm tm = *std::localtime(&t);
+    char result[64]={0};
+    sprintf(result,"%04d%02d%02d_%02d%02d%02d",1900+tm.tm_year,tm.tm_mon+1,tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec);
+    return result;
+}
 void  CommunicationAPI::send_cmd_udp(int fd_udp, const char* dev_ip, int dev_port, int cmd, int sn, int len, const void* snd_buf)
 {
 	char buffer[2048];
