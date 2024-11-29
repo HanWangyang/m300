@@ -10,7 +10,7 @@
 #include"protocol.h"
 
 #define M300_E_SDKVERSION "V1.1_20241126" // SDK版本号
-#define ONE_FRAME_POINT_NUM 64*30*12
+#define ONE_FRAME_POINT_NUM 128*30*6
 
 
 typedef struct

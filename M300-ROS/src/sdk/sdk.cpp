@@ -100,6 +100,8 @@ void BlueSeaLidarSDK::WritePointCloud(int ID, const uint8_t dev_type, LidarPacke
 		return;
 	if (lidar->cb_cloudpoint != nullptr)
 		lidar->cb_cloudpoint(ID, dev_type, data, lidar->cloudpoint);
+	else
+		free(data);
 }
 
 void BlueSeaLidarSDK::WriteImuData(int ID, const uint8_t dev_type, LidarPacketData *data)
@@ -117,6 +119,8 @@ void BlueSeaLidarSDK::WriteImuData(int ID, const uint8_t dev_type, LidarPacketDa
 		return;
 	if (lidar->cb_imudata != nullptr)
 		lidar->cb_imudata(ID, dev_type, data, lidar->imudata);
+	else
+		free(data);
 }
 
 void BlueSeaLidarSDK::WriteLogData(int ID, const uint8_t dev_type, char *data, int len)
@@ -574,10 +578,11 @@ void BlueSeaLidarSDK::PacketToPoints(BlueSeaLidarSpherPoint bluesea, LidarCloudP
 void BlueSeaLidarSDK::AddPacketToList(const BlueSeaLidarEthernetPacket *packet, std::vector<LidarCloudPointData> &cloud_data, uint64_t first_timestamp)
 {
 	std::vector<LidarCloudPointData> tmp;
+	BlueSeaLidarSpherPoint *data = (BlueSeaLidarSpherPoint*)packet->data;
 	for (int i = 0; i < packet->dot_num; i++)
 	{
 		LidarCloudPointData point;
-		PacketToPoints(packet->points[i], point);
+		PacketToPoints(data[i], point);
 		point.offset_time = packet->timestamp + i * packet->time_interval / 100.0 / (packet->dot_num - 1) - first_timestamp;
 
 		// int offset_time = point.offset_time/1000000;
@@ -622,7 +627,7 @@ void UDPThreadProc(int id)
 			continue;
 		}
 
-		uint8_t buf[1024];
+		uint8_t buf[4096];
 		sockaddr_in addr;
 		socklen_t sz = sizeof(addr);
 		int dw = recvfrom(fd, (char *)&buf, sizeof(buf), 0, (struct sockaddr *)&addr, &sz);
@@ -640,14 +645,21 @@ void UDPThreadProc(int id)
 			//	CommunicationAPI::send_cmd_udp(fd, cfg->lidar_ip.c_str(), cfg->lidar_port, 0x4b41, rand(), sizeof(alive), &alive);
 			//	tto = tv.tv_sec + 1;
 			//}
-			int packet_size = sizeof(BlueSeaLidarEthernetPacket);
-			if (buf[0] == 0 && dw == packet_size)
+			if (buf[0] == 0)
 			{
+				//判定是否是数据包
 				const BlueSeaLidarEthernetPacket *packet = (BlueSeaLidarEthernetPacket *)&buf;
+				int packet_size  = sizeof(BlueSeaLidarEthernetPacket)+packet->dot_num*sizeof(BlueSeaLidarSpherPoint);
+				if(dw!=packet_size)
+				{
+					std::string err = "time: " + SystemAPI::getCurrentTime() + " pointcloud packet length error: " + std::to_string(dw) + "  " + std::to_string(packet_size);
+					BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
+				}
+
 
 				if (packet->udp_cnt != bluesea_idx)
 				{
-					std::string err = "time: " + SystemAPI::getCurrentTime() + " packet lost :last " + std::to_string(packet->udp_cnt) + " now: " + std::to_string(bluesea_idx);
+					std::string err = "time: " + SystemAPI::getCurrentTime() + " pointcloud packet lost :last " + std::to_string(packet->udp_cnt) + " now: " + std::to_string(bluesea_idx);
 					BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_WARM, (char *)err.c_str(), err.size());
 				}
 				bluesea_idx = packet->udp_cnt + 1;
@@ -685,7 +697,7 @@ void UDPThreadProc(int id)
 				const TransBuf *trans = (TransBuf *)buf;
 				if (trans->idx != wait_idx)
 				{
-					std::string err = "time: " + SystemAPI::getCurrentTime() + "packet lost :last " + std::to_string(trans->idx) + " now: " + std::to_string(wait_idx);
+					std::string err = "time: " + SystemAPI::getCurrentTime() + " imudata packet lost :last " + std::to_string(trans->idx) + " now: " + std::to_string(wait_idx);
 					BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_WARM, (char *)err.c_str(), err.size());
 				}
 

@@ -107,7 +107,7 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData
       argdata->pub_custommsg.publish(msg);
     }
   }
-  delete[] data;
+  free(data);
 }
 
 void ImuDataCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData *data, void *client_data)
@@ -134,13 +134,14 @@ void ImuDataCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData *d
       imu.linear_acceleration.z = p_imu_data->linear_acceleration_z;
 
       uint64_t nanosec = data->timestamp;
+	  imu.header.frame_id = argdata->frame_id;
       imu.header.stamp.sec = nanosec / 1000000000;
       imu.header.stamp.nsec = nanosec % 1000000000;
       argdata->pub_imu.publish(imu);
     }
   }
 
-  delete[] data;
+  free(data);
 }
 
 void LogDataCallback(uint32_t handle, const uint8_t dev_type, char *data, int len)

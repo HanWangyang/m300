@@ -7,7 +7,6 @@
 #define PACK_PREAMLE 0X484C
 #define DRIFT_RD_PACK 0x4357
 #define DRIFT_MAGIC 0xD81F1CA1
-#define BLUESEA_PAC_POINT 64	
 #define CMD_REPEAT   50  
 #define LOCALPORT  6668
 #define HEARTPORT  6789
@@ -94,8 +93,8 @@ typedef struct {
 	uint8_t rsvd[12];
 	uint32_t crc32;
 	uint64_t timestamp;
-	//uint8_t data[1];             /**< Point cloud data. */
-	BlueSeaLidarSpherPoint points[BLUESEA_PAC_POINT];
+	uint8_t data[0];             /**< Point cloud data. */
+	//BlueSeaLidarSpherPoint points[BLUESEA_PAC_POINT];
 } BlueSeaLidarEthernetPacket;
 
 

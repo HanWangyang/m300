@@ -16,17 +16,17 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData
 			p_point_data[i].z;
 		}*/
 	}
-	delete[]data;
+	free(data);
 }
 
 void ImuDataCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData* data, void* client_data) {
 	if (data == nullptr) {
 		return;
 	}
-	printf("Imu data callback handle:%u, data_num:%u, data_type:%u, length:%u, frame_counter:%u.\n",
-		handle, data->dot_num, data->data_type, data->length, data->frame_cnt);
+	//printf("Imu data callback handle:%u, data_num:%u, data_type:%u, length:%u, frame_counter:%u.\n",
+		//handle, data->dot_num, data->data_type, data->length, data->frame_cnt);
 
-	delete[]data;
+	free(data);
 }
 
 void LogDataCallback(uint32_t handle, const uint8_t dev_type, char* data, int len) {
@@ -38,7 +38,7 @@ void LogDataCallback(uint32_t handle, const uint8_t dev_type, char* data, int le
 
 int main()
 {
-	char lidar_addr[] = "192.168.0.231";
+	char lidar_addr[] = "192.168.1.37";
 	int lidar_port = 6543;
 	int listen_port = 6668;
 	BlueSeaLidarSDK::getInstance()->Init();
