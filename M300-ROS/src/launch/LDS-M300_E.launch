@@ -14,6 +14,8 @@
    
     <param name="lidar_port" value="6543" />
     <param name="local_port" value="6668" />
-    <param name="lidar_ip" value="192.168.1.37" />
+    <param name="lidar_ip" value="192.168.0.210" />
+    <param name="ptp_enable" value="1" />
+
   </node>
 </launch>

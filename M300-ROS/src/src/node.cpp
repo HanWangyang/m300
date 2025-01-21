@@ -42,6 +42,7 @@ typedef struct
   std::string lidar_ip;
   int lidar_port;
   int local_port;
+  int ptp_enable;
 } ArgData;
 
 void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData *data, void *client_data)
@@ -50,8 +51,8 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData
   {
     return;
   }
-   //printf("point cloud handle: %u, data_num: %d, data_type: %d, length: %d, frame_counter: %d\n",
-   //handle, data->dot_num, data->data_type, data->length, data->frame_cnt);
+  //  printf("point cloud handle: %u, data_num: %d, data_type: %d, length: %d, frame_counter: %d\n",
+  //  handle, data->dot_num, data->data_type, data->length, data->frame_cnt);
   if (data->data_type == LIDARPOINTCLOUD)
   {
     LidarCloudPointData *p_point_data = (LidarCloudPointData *)data->data;
@@ -175,6 +176,7 @@ int main(int argc, char **argv)
   nh.param("lidar_port", argdata.lidar_port, 6543);
   nh.param("local_port", argdata.local_port, 6668);
 
+  nh.param("ptp_enable", argdata.ptp_enable, -1);
   if (argdata.output_pointcloud)
     argdata.pub_pointcloud = nh.advertise<sensor_msgs::PointCloud2>(argdata.topic_pointcloud, 10);
   if (argdata.output_custommsg)
@@ -183,7 +185,7 @@ int main(int argc, char **argv)
     argdata.pub_imu = nh.advertise<sensor_msgs::Imu>(argdata.topic_imu, 10);
 
   BlueSeaLidarSDK::getInstance()->Init();
-  int devID = BlueSeaLidarSDK::getInstance()->AddLidar(argdata.lidar_ip, argdata.lidar_port, argdata.local_port);
+  int devID = BlueSeaLidarSDK::getInstance()->AddLidar(argdata.lidar_ip, argdata.lidar_port, argdata.local_port,argdata.ptp_enable);
 
   BlueSeaLidarSDK::getInstance()->SetPointCloudCallback(devID, PointCloudCallback, &argdata);
   BlueSeaLidarSDK::getInstance()->SetImuDataCallback(devID, ImuDataCallback, &argdata);

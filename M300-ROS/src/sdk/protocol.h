@@ -81,6 +81,17 @@ typedef struct {
 	uint8_t tag;
 } BlueSeaLidarSpherPoint;
 
+
+
+#define TAG_MIRROR_NOT_STABLE 	0x80
+#define TAG_MOTOR_NOT_STABLE	0x40
+
+typedef struct {
+	uint16_t mirror_rpm;
+	uint16_t motor_rpm_x10;
+	uint8_t tags;
+} RuntimeInfoV1;
+
 typedef struct {
 	uint8_t version;
 	uint16_t length;
@@ -90,7 +101,10 @@ typedef struct {
 	uint8_t frame_cnt;
 	uint8_t data_type;
 	uint8_t time_type;
-	uint8_t rsvd[12];
+	union {
+		RuntimeInfoV1 rt_v1;
+		uint8_t rsvd[12];
+	};
 	uint32_t crc32;
 	uint64_t timestamp;
 	uint8_t data[0];             /**< Point cloud data. */
@@ -128,7 +142,7 @@ typedef struct {
 	uint8_t rsvd[12];
 	uint32_t crc32;
 	uint64_t timestamp;
-	uint8_t data[1];             /**< Point cloud data. */
+	uint8_t data[0];             /**< Point cloud data. */
 } LidarPacketData;
 
 

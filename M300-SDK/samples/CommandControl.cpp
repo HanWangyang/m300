@@ -9,7 +9,7 @@ void LogDataCallback(uint32_t handle, const uint8_t dev_type, char* data, int le
 
 int main()
 {
-	char lidar_addr[] = "192.168.1.37";
+	char lidar_addr[] = "192.168.0.210";
 	int lidar_port = 6543;
 	int listen_port = 6668;
 

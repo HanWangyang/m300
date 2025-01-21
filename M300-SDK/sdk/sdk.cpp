@@ -610,6 +610,8 @@ void UDPThreadProc(int id)
 		BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
 		return;
 	}
+	CommunicationAPI::send_cmd_udp(fd, cfg->lidar_ip.c_str(), cfg->lidar_port, 0x0043, rand(),6, "LUUIDH");
+
 	uint16_t wait_idx = 0;
 	uint8_t bluesea_idx = 0;
 	uint16_t nlen = 0;
@@ -645,7 +647,7 @@ void UDPThreadProc(int id)
 			//	CommunicationAPI::send_cmd_udp(fd, cfg->lidar_ip.c_str(), cfg->lidar_port, 0x4b41, rand(), sizeof(alive), &alive);
 			//	tto = tv.tv_sec + 1;
 			//}
-			if (buf[0] == 0)
+			if (buf[0] == 0 || buf[0] == 1)
 			{
 				//判定是否是数据包
 				const BlueSeaLidarEthernetPacket *packet = (BlueSeaLidarEthernetPacket *)&buf;
@@ -654,6 +656,21 @@ void UDPThreadProc(int id)
 				{
 					std::string err = "time: " + SystemAPI::getCurrentTime() + " pointcloud packet length error: " + std::to_string(dw) + "  " + std::to_string(packet_size);
 					BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
+				}
+
+
+				if (packet->version == 1)
+				{
+					if (packet->rt_v1.tags & TAG_MIRROR_NOT_STABLE)
+					{
+						std::string err = "time: " + SystemAPI::getCurrentTime() + " mirror " + std::to_string(packet->rt_v1.mirror_rpm);
+						BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
+					}
+
+					if (packet->rt_v1.tags & TAG_MOTOR_NOT_STABLE) {
+						std::string err = "time: " + SystemAPI::getCurrentTime() + " main motor " + std::to_string(packet->rt_v1.motor_rpm_x10/10.0);
+						BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
+					}
 				}
 
 
