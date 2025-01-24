@@ -37,6 +37,8 @@ FILE(GLOB BLUESEA_SDK_SRC
 add_executable(${PROJECT_NAME}_node  ./src/node.cpp ${BLUESEA_SDK_SRC})
 target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES})
 
+add_dependencies(${PROJECT_NAME}_node ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+
 install(TARGETS ${PROJECT_NAME}_node
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
