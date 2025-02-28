@@ -13,8 +13,17 @@ int main()
 	int lidar_port = 6543;
 	int listen_port = 6668;
 
+
+	int ptp_enable = -1;
+	int frame_package_num = 180;
+	ShadowsFilterParam sfp;
+	sfp.sfp_enable=0;
+	DirtyFilterParam dfp;
+	dfp.dfp_enable=0;
+
+
 	BlueSeaLidarSDK::getInstance()->Init();
-	int devID = BlueSeaLidarSDK::getInstance()->AddLidar(lidar_addr, lidar_port, listen_port);
+	int devID = BlueSeaLidarSDK::getInstance()->AddLidar(lidar_addr, lidar_port, listen_port,ptp_enable,frame_package_num,sfp,dfp);
 
 	BlueSeaLidarSDK::getInstance()->SetLogDataCallback(devID, LogDataCallback, nullptr);
 

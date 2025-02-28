@@ -43,6 +43,15 @@ typedef struct
   int lidar_port;
   int local_port;
   int ptp_enable;
+
+  int frame_package_num;
+  // int window;
+  // int min_angle;
+  // int max_angle;
+
+  // int continuous_times;
+  // double dirty_factor;
+
 } ArgData;
 
 void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData *data, void *client_data)
@@ -177,6 +186,24 @@ int main(int argc, char **argv)
   nh.param("local_port", argdata.local_port, 6668);
 
   nh.param("ptp_enable", argdata.ptp_enable, -1);
+
+  nh.param("frame_package_num", argdata.frame_package_num, 180);
+
+  ShadowsFilterParam sfp;
+  nh.param("sfp_enable", sfp.sfp_enable, 1);
+  nh.param("window", sfp.window, 1);
+  nh.param("min_angle", sfp.min_angle, 5.0);
+  nh.param("max_angle", sfp.max_angle, 175.0);
+  nh.param("max_angle", sfp.effective_distance, 5.0);
+  DirtyFilterParam dfp;
+
+  nh.param("dfp_enable", dfp.dfp_enable, 1);
+  nh.param("continuous_times", dfp.continuous_times, 30);
+  nh.param("dirty_factor", dfp.dirty_factor, 0.005);
+
+
+
+
   if (argdata.output_pointcloud)
     argdata.pub_pointcloud = nh.advertise<sensor_msgs::PointCloud2>(argdata.topic_pointcloud, 10);
   if (argdata.output_custommsg)
@@ -185,7 +212,7 @@ int main(int argc, char **argv)
     argdata.pub_imu = nh.advertise<sensor_msgs::Imu>(argdata.topic_imu, 10);
 
   BlueSeaLidarSDK::getInstance()->Init();
-  int devID = BlueSeaLidarSDK::getInstance()->AddLidar(argdata.lidar_ip, argdata.lidar_port, argdata.local_port,argdata.ptp_enable);
+  int devID = BlueSeaLidarSDK::getInstance()->AddLidar(argdata.lidar_ip, argdata.lidar_port, argdata.local_port,argdata.ptp_enable,argdata.frame_package_num,sfp,dfp);
 
   BlueSeaLidarSDK::getInstance()->SetPointCloudCallback(devID, PointCloudCallback, &argdata);
   BlueSeaLidarSDK::getInstance()->SetImuDataCallback(devID, ImuDataCallback, &argdata);

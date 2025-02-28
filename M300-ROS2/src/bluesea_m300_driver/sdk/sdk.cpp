@@ -155,7 +155,7 @@ void BlueSeaLidarSDK::Uninit()
 		m_lidars.at(i)->run_state = QUIT;
 	}
 }
-int BlueSeaLidarSDK::AddLidar(std::string lidar_ip, int lidar_port, int listen_port, int ptp_enable)
+int BlueSeaLidarSDK::AddLidar(std::string lidar_ip, int lidar_port, int listen_port, int ptp_enable, int frame_package_num, ShadowsFilterParam sfp, DirtyFilterParam dfp)
 {
 	RunConfig *cfg = new RunConfig;
 	cfg->lidar_ip = lidar_ip.c_str();
@@ -169,6 +169,9 @@ int BlueSeaLidarSDK::AddLidar(std::string lidar_ip, int lidar_port, int listen_p
 	cfg->cb_logdata = NULL;
 	cfg->frame_firstpoint_timestamp = 0;
 	cfg->ptp_enable = ptp_enable;
+	cfg->sfp = sfp;
+	cfg->dfp = dfp;
+	cfg->frame_package_num = frame_package_num;
 	m_lidars.push_back(cfg);
 	return cfg->ID;
 }
@@ -554,7 +557,7 @@ RunConfig *BlueSeaLidarSDK::getConfig(int ID)
 	}
 	return nullptr;
 }
-void BlueSeaLidarSDK::PacketToPoints(BlueSeaLidarSpherPoint bluesea, LidarCloudPointData &point)
+double BlueSeaLidarSDK::PacketToPoints(BlueSeaLidarSpherPoint bluesea, LidarCloudPointData &point)
 {
 	point.reflectivity = bluesea.reflectivity;
 
@@ -562,7 +565,7 @@ void BlueSeaLidarSDK::PacketToPoints(BlueSeaLidarSpherPoint bluesea, LidarCloudP
 	theta = (theta << 12) | bluesea.theta_lo;
 
 	double ang = (90000 - theta) * M_PI / 180000;
-
+	double vertical_ang = ang;
 	double depth = bluesea.depth / 1000.0;
 
 	double r = depth * cos(ang);
@@ -572,27 +575,47 @@ void BlueSeaLidarSDK::PacketToPoints(BlueSeaLidarSpherPoint bluesea, LidarCloudP
 	point.x = cos(ang) * r;
 	point.y = sin(ang) * r;
 
-	point.line = 0;
 	point.tag = 0;
+	point.line = 0;
+	if((r != 0.0  && r< 0.035)){
+		point.tag +=128; //光学罩内的点进行标记，方便后续进行脏污判断
+	}
+	return vertical_ang;
 }
 // int tmp2=0;
-void BlueSeaLidarSDK::AddPacketToList(const BlueSeaLidarEthernetPacket *packet, std::vector<LidarCloudPointData> &cloud_data, uint64_t first_timestamp)
+void BlueSeaLidarSDK::AddPacketToList(const BlueSeaLidarEthernetPacket *packet, std::vector<LidarCloudPointData> &cloud_data, uint64_t first_timestamp, double &last_ang, std::vector<LidarCloudPointData> &tmp_filter, std::vector<double> &tmp_ang, ShadowsFilterParam &sfp)
 {
 	std::vector<LidarCloudPointData> tmp;
 	BlueSeaLidarSpherPoint *data = (BlueSeaLidarSpherPoint *)packet->data;
 	for (int i = 0; i < packet->dot_num; i++)
 	{
 		LidarCloudPointData point;
-		PacketToPoints(data[i], point);
+		double ang = PacketToPoints(data[i], point);
 		point.offset_time = packet->timestamp + i * packet->time_interval / 100.0 / (packet->dot_num - 1) - first_timestamp;
-
-		// int offset_time = point.offset_time/1000000;
-		// if(offset_time!=tmp2)
-		// {
-		// 	printf("%ld\n", offset_time );
-		// 	tmp2=offset_time;
-		// }
-		tmp.push_back(point);
+		if (sfp.sfp_enable)
+		{
+			
+			// std::cout << ang <<std::endl;
+			if (ang > last_ang)
+			{
+				ShadowsFilter(tmp_filter, tmp_ang, sfp, tmp_ang);
+				tmp.insert(tmp.end(), tmp_filter.begin(), tmp_filter.end());
+				tmp_ang.clear();
+				tmp_filter.clear();
+				tmp_ang.push_back(ang);
+				tmp_filter.push_back(point);
+			}
+			else
+			{
+				tmp_ang.push_back(ang);
+				tmp_filter.push_back(point);
+			}
+			last_ang = ang;
+		}
+		else
+		{
+			tmp.push_back(point);
+		}
 	}
 	for (unsigned int i = 0; i < tmp.size(); i++)
 	{
@@ -615,12 +638,12 @@ void UDPThreadProc(int id)
 	if (cfg->ptp_enable >= 0)
 	{
 		char cmd[16] = {0};
-		char tmpresult[3]={0};
+		char tmpresult[3] = {0};
 		sprintf(cmd, "LSPTP:%dH", cfg->ptp_enable);
-		if (CommunicationAPI::udp_talk_pack(fd, cfg->lidar_ip.c_str(), cfg->lidar_port,strlen(cmd), cmd, S_PACK, cfg->recv_len, tmpresult))
+		if (CommunicationAPI::udp_talk_pack(fd, cfg->lidar_ip.c_str(), cfg->lidar_port, strlen(cmd), cmd, S_PACK, cfg->recv_len, tmpresult))
 		{
 
-			std::string err = "time: " + SystemAPI::getCurrentTime() + " set " + cmd+ "  " +tmpresult;
+			std::string err = "time: " + SystemAPI::getCurrentTime() + " set " + cmd + "  " + tmpresult;
 			BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
 		}
 	}
@@ -630,10 +653,10 @@ void UDPThreadProc(int id)
 	uint16_t nlen = 0;
 	uint8_t buffer[TRANS_BLOCK * 2];
 
-	// struct timeval tv;
-	// SystemAPI::GetTimeStamp(&tv, false);
-	// time_t tto = tv.tv_sec + 1;
-
+	double last_ang = 100;
+	std::vector<LidarCloudPointData> tmp_filter;
+	std::vector<double> tmp_ang;
+	int continuous_times = 0;
 	while (cfg->run_state != QUIT)
 	{
 		if (cfg->run_state == OFFLINE)
@@ -697,28 +720,59 @@ void UDPThreadProc(int id)
 				if (count == 0)
 					cfg->frame_firstpoint_timestamp = packet->timestamp;
 
-				BlueSeaLidarSDK::getInstance()->AddPacketToList(packet, cfg->cloud_data, cfg->frame_firstpoint_timestamp);
+				BlueSeaLidarSDK::getInstance()->AddPacketToList(packet, cfg->cloud_data, cfg->frame_firstpoint_timestamp, last_ang, tmp_filter, tmp_ang, cfg->sfp);
 				count = cfg->cloud_data.size();
-				if (count >= ONE_FRAME_POINT_NUM)
+				if (cfg->frame_package_num < 40)
+				{
+					std::string err = "time: " + SystemAPI::getCurrentTime() + "too few point in one frame " + std::to_string(cfg->frame_package_num);
+					BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
+				}
+				if (count >= cfg->frame_package_num * 128)
 				{
 					LidarPacketData *dat = (LidarPacketData *)malloc(sizeof(LidarPacketData) + sizeof(LidarCloudPointData) * count);
 					LidarCloudPointData *dat2 = (LidarCloudPointData *)dat->data;
 					struct timeval tv;
 					SystemAPI::GetTimeStamp(&tv, true);
 
+					int dirt_flag = 0;
+					int point_idx = 0;
 					for (int i = 0; i < count; i++)
 					{
-						dat2[i] = cfg->cloud_data[i];
-					}
+						if (isBitSet(cfg->cloud_data[i].tag, 7))
+							dirt_flag++;
 
+						if (!isBitSet(cfg->cloud_data[i].tag, 6))
+						{
+							dat2[point_idx] = cfg->cloud_data[i];
+							point_idx++;
+						}
+					}
+					// printf("%d %d %d\n",count,point_idx,dirt_flag);
 					dat->timestamp = cfg->frame_firstpoint_timestamp;
-					dat->length = sizeof(LidarPacketData) + sizeof(LidarCloudPointData) * count;
-					dat->dot_num = count;
+					dat->length = sizeof(LidarPacketData) + sizeof(LidarCloudPointData) * point_idx;
+					dat->dot_num = point_idx;
 					dat->frame_cnt = cfg->frame_cnt++;
 					dat->data_type = LIDARPOINTCLOUD;
 
+					if (cfg->dfp.dfp_enable)
+					{
+						if (dirt_flag > point_idx * cfg->dfp.dirty_factor)
+						{
+							continuous_times++;
+							if (continuous_times > cfg->dfp.continuous_times)
+							{
+								std::string err = "time: " + SystemAPI::getCurrentTime() + "Perhaps there is dirt or obstruction on the optical cover ! The tag points num:" + std::to_string(dirt_flag);
+								BlueSeaLidarSDK::getInstance()->WriteLogData(cfg->ID, MSG_ERROR, (char *)err.c_str(), err.size());
+							}
+						}
+						else
+						{
+							continuous_times = 0;
+						}
+					}
 					BlueSeaLidarSDK::getInstance()->WritePointCloud(cfg->ID, 0, dat);
 					cfg->cloud_data.clear();
+					// std::cout<<point_idx<<std::endl;
 				}
 			}
 			else if (buf[0] == 0xfa && buf[1] == 0x88)
@@ -1491,4 +1545,83 @@ void SendUpgradePack(unsigned int udp, const FirmwarePart *fp, char *ip, int por
 		resndBuf->timeout = time(NULL) + TIMEOUT;
 		memcpy(resndBuf->buf, fp, sizeof(FirmwarePart));
 	}
+}
+double getAngleWithViewpoint(float r1, float r2, double included_angle)
+{
+	return atan2(r2 * sinf(included_angle), r1 - (r2 * cosf(included_angle)));
+}
+int ShadowsFilter(std::vector<LidarCloudPointData> &scan_in, std::vector<double> &ang_in, const ShadowsFilterParam &param, std::vector<double> &tmp_ang)
+{
+	double angle_increment = 0;
+	std::set<int> indices_to_delete;
+	for (unsigned int i = 0; i < scan_in.size() - param.window - 1; i++)
+	{
+		double dis_i = sqrt((scan_in[i].x * scan_in[i].x) + (scan_in[i].y * scan_in[i].y) + (scan_in[i].z * scan_in[i].z));
+		if (dis_i > param.effective_distance | dis_i == 0)
+				continue;
+		for (int y = 1; y < param.window + 1; y++)
+		{
+			int j = i + y;
+			// double dis_i = sqrt((scan_in[i].x * scan_in[i].x) + (scan_in[i].y * scan_in[i].y) + (scan_in[i].z * scan_in[i].z));
+			double dis_j = sqrt((scan_in[j].x * scan_in[j].x) + (scan_in[j].y * scan_in[j].y) + (scan_in[j].z * scan_in[j].z));
+			// //屏蔽某些特殊的平面(水平面)
+			// double    dis = sqrt(pow(scan_in[i].x - scan_in[j].x, 2) + pow(scan_in[i].y - scan_in[j].y, 2) + pow(scan_in[i].z - scan_in[j].z, 2));
+			// double    z = fabs(scan_in[i].z - scan_in[j].z);
+			// double    result = sqrt(dis*dis - z*z);
+			// double   ang_final = atan2(result,z);
+			// ang_final = abs(ang_final * 180 /M_PI);
+			// if(ang_final < 10 || ang_final > 80) continue;
+			if (j < 0 || j >= (int)scan_in.size() || (int)i == j)
+				continue;
+			// if(fabs(dis_i- dis_j) < 0.05)
+			// continue;
+			double rad = getAngleWithViewpoint(
+				dis_i,
+				dis_j,
+				tmp_ang[i] - tmp_ang[j]);
+
+			double angle = abs(rad * 180 / M_PI);
+			// std::cout << angle<< std::endl;
+			if (angle > param.max_angle || angle < param.min_angle)
+			{
+				// std::cout << ang_in[i]-ang_in[j]<< std::endl;
+				int from, to;
+				// if (dis_i < dis_j)
+				{
+					from = i + 1;
+					to = j;
+				}
+				// else
+				// {
+					// from = j - 1;
+					// to = i;
+				// }
+
+				if (from > to)
+				{
+					int t = from;
+					from = to;
+					to = t;
+				}
+				for (int index = from; index <= to; index++)
+				{
+					indices_to_delete.insert(index);
+				}
+			}
+		}
+	}
+
+	int nr = 0;
+	for (std::set<int>::iterator it = indices_to_delete.begin(); it != indices_to_delete.end(); ++it)
+	{
+		scan_in[*it].tag += 64;
+		nr++;
+	}
+
+	return nr;
+}
+
+bool isBitSet(uint8_t num, int n)
+{
+	return (num & (1 << n)) != 0; // 左移 n 位并与 num 按位与
 }

@@ -269,7 +269,22 @@ struct ResendPack
 	char buf[2048];
 };
 
+typedef struct  
+{
+	int sfp_enable;
+    int window;          // 阴影检测窗口大小
+    double min_angle;    // 最小角度
+    double max_angle;    // 最大角度
+    double effective_distance;
 
+}ShadowsFilterParam;
+typedef struct  
+{
+	int dfp_enable;
+    int continuous_times; //持续帧数
+	double dirty_factor;//脏污点报警系数
+	
+}DirtyFilterParam;
 
 
 typedef void(*LidarCloudPointCallback) (uint32_t handle, const uint8_t dev_type, LidarPacketData *data, void *client_data);

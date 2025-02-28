@@ -9,8 +9,7 @@
 #include<string>
 #include"protocol.h"
 
-#define M300_E_SDKVERSION "V1.2_20250120" // SDK版本号
-#define ONE_FRAME_POINT_NUM 128*30*6
+#define M300_E_SDKVERSION "V1.3_20250206" // SDK版本号
 
 
 typedef struct
@@ -110,7 +109,10 @@ struct RunConfig
 	std::string send_buf;
 	int recv_len;
 	std::string recv_buf;
-
+	int ptp_enable;
+	ShadowsFilterParam sfp ;
+	DirtyFilterParam   dfp;
+	int frame_package_num;
 };
 class BlueSeaLidarSDK
 {
@@ -136,7 +138,7 @@ public:
 	/*
 	 *	add lidar by lidar ip    lidar port    local listen port
 	 */
-	int AddLidar(std::string lidar_ip, int lidar_port, int listen_port);
+	int AddLidar(std::string lidar_ip, int lidar_port, int listen_port,int ptp_enable,int frame_package_num,ShadowsFilterParam sfp,DirtyFilterParam dfp);
 	/*
 	 *	connect lidar     send cmd/parse recvice data
 	 */
@@ -189,19 +191,16 @@ public:
 
 
 
-
-
-
 	int read_calib(const char* lidar_ip, int port);
 	int QueryIDByIp(std::string ip);
 	RunConfig*getConfig(int ID);
 	uint16_t Decode(uint16_t n, const uint8_t* buf, std::queue<IIM42652_FIFO_PACKET_16_ST>&imu_data/*, std::mutex &imu_mutex*/);
-	void AddPacketToList(const BlueSeaLidarEthernetPacket* bluesea, std::vector<LidarCloudPointData> &cloud_data,uint64_t first_timestamp);
+	void AddPacketToList(const BlueSeaLidarEthernetPacket* bluesea, std::vector<LidarCloudPointData> &cloud_data,uint64_t first_timestamp,double &last_ang,std::vector<LidarCloudPointData> &tmp_filter,std::vector<double> &tmp_ang,ShadowsFilterParam &sfp);
 	bool firmwareUpgrade_udp(std::string  ip, int port, std::string path, std::string &error);
 protected:
 
 private:
-	void PacketToPoints(BlueSeaLidarSpherPoint bluesea, LidarCloudPointData &point);
+	double PacketToPoints(BlueSeaLidarSpherPoint bluesea, LidarCloudPointData &point);
 
 	int PackNetCmd(uint16_t type, uint16_t len, uint16_t sn, const void* buf, uint8_t* netbuf);
 	int SendNetPack(int sock, uint16_t type, uint16_t len, const void* buf, char*ip, int port);
@@ -224,7 +223,6 @@ private:
 	int m_currentframeidx{ 0 };
 	std::thread m_heartthread;
 	HeartInfo m_heartinfo;
-
 };
 
 void UDPThreadProc(int id);
@@ -235,6 +233,9 @@ void HeartThreadProc(HeartInfo &heartinfo);
 
 FirmwareFile* LoadFirmware(const char* path);
 void SendUpgradePack(unsigned int udp, const FirmwarePart* fp, char* ip, int port, int SN, ResendPack *resndBuf);
+double getAngleWithViewpoint(float r1, float r2, double included_angle);
+int ShadowsFilter(std::vector<LidarCloudPointData> &scan_in,std::vector<double> &ang_in,const ShadowsFilterParam& param,std::vector<double> &tmp_ang);
+bool isBitSet(uint8_t num, int n);
 
 
 

@@ -34,6 +34,10 @@ struct ArgData
   int lidar_port;
   int local_port;
   int ptp_enable;
+
+  int frame_package_num;
+
+
 };
 
 void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData *data, void *client_data)
@@ -143,6 +147,12 @@ void LogDataCallback(uint32_t handle, const uint8_t dev_type, char *data, int le
   printf("ID::%d print level:%d msg:%s\n", handle, dev_type, data);
 }
 
+#define READ_PARAM(TYPE, NAME, VAR, INIT)     \
+	VAR = INIT;                               \
+	declare_parameter<TYPE>(NAME, VAR); \
+	get_parameter(NAME, VAR);
+
+
 class LidarNode : public rclcpp::Node
 {
 public:
@@ -150,32 +160,31 @@ public:
       : Node("lidar_m300"), argdata_{}
   {
     // 读取参数
-    declare_parameter("frame_id", "map");
-    get_parameter("frame_id", argdata_.frame_id);
+    READ_PARAM(std::string,"frame_id", argdata_.frame_id,"map");
+    READ_PARAM(std::string,"topic_pointcloud", argdata_.topic_pointcloud,"pointcloud");
+    READ_PARAM(bool,"output_pointcloud", argdata_.output_pointcloud,true);
+    READ_PARAM(std::string,"topic_custommsg", argdata_.topic_custommsg,"custommsg");
+    READ_PARAM(bool,"output_custommsg", argdata_.output_custommsg,true);
+    READ_PARAM(std::string,"topic_imu", argdata_.topic_imu,"imu");
+    READ_PARAM(bool,"output_imu", argdata_.output_imu,true);
+    READ_PARAM(std::string,"lidar_ip", argdata_.lidar_ip,"192.168.158.98");
+    READ_PARAM(int,"lidar_port", argdata_.lidar_port,6668);
+    READ_PARAM(int,"local_port", argdata_.local_port,6668);
+    READ_PARAM(int,"ptp_enable", argdata_.ptp_enable,-1);
+    READ_PARAM(int,"frame_package_num", argdata_.frame_package_num,180);
 
-    declare_parameter("topic_pointcloud", "pointcloud");
-    get_parameter("topic_pointcloud", argdata_.topic_pointcloud);
-    argdata_.output_pointcloud = declare_parameter("output_pointcloud", true);
 
-    declare_parameter("topic_custommsg", "custommsg");
-    get_parameter("topic_custommsg", argdata_.topic_custommsg);
-    argdata_.output_custommsg = declare_parameter("output_custommsg", true);
+    ShadowsFilterParam sfp;
+    READ_PARAM(int,"sfp_enable", sfp.sfp_enable,1);
+    READ_PARAM(int,"window", sfp.window,1);
+    READ_PARAM(double,"min_angle", sfp.min_angle,5.0);
+    READ_PARAM(double,"max_angle", sfp.max_angle,175.0);
+    READ_PARAM(double,"effective_distance", sfp.effective_distance,5.0);
 
-    declare_parameter("topic_imu", "imu");
-    get_parameter("topic_imu", argdata_.topic_imu);
-    argdata_.output_imu = declare_parameter("output_imu", true);
-
-    declare_parameter("lidar_ip", "192.168.158.98");
-    get_parameter("lidar_ip", argdata_.lidar_ip);
-
-    declare_parameter("lidar_port", 6668);
-    get_parameter("lidar_port", argdata_.lidar_port);
-
-    declare_parameter("local_port", 6543);
-    get_parameter("local_port", argdata_.local_port);
-
-    declare_parameter("ptp_enable", -1);
-    get_parameter("ptp_enable", argdata_.ptp_enable);
+    DirtyFilterParam dfp;
+    READ_PARAM(int,"dfp_enable", dfp.dfp_enable,1);
+    READ_PARAM(int,"continuous_times", dfp.continuous_times,30);
+    READ_PARAM(double,"dirty_factor", dfp.dirty_factor,0.005);
 
     // 创建发布者
     if (argdata_.output_pointcloud)
@@ -197,7 +206,7 @@ public:
     // 初始化SDK并设置回调
     BlueSeaLidarSDK::getInstance()->Init();
     devID = BlueSeaLidarSDK::getInstance()->AddLidar(
-        argdata_.lidar_ip.c_str(), argdata_.lidar_port, argdata_.local_port, argdata_.ptp_enable);
+        argdata_.lidar_ip.c_str(), argdata_.lidar_port, argdata_.local_port, argdata_.ptp_enable,argdata_.frame_package_num,sfp,dfp);
 
     BlueSeaLidarSDK::getInstance()->SetPointCloudCallback(devID, PointCloudCallback, &argdata_);
     BlueSeaLidarSDK::getInstance()->SetImuDataCallback(devID, ImuDataCallback, &argdata_);

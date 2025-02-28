@@ -14,10 +14,20 @@ int main()
 	char lidar_addr[] = "192.168.0.231";
 	int lidar_port = 6543;
 	int listen_port = 6668;
+	
+
+	int ptp_enable = -1;
+	int frame_package_num = 180;
+	ShadowsFilterParam sfp;
+	sfp.sfp_enable=0;
+	DirtyFilterParam dfp;
+	dfp.dfp_enable=0;
+
+
 	//std::string  upgrade_file_path = "C:\\Users\\49535\\Desktop\\LDS-M300-E-20241029-115237.lhl";
     std::string  upgrade_file_path = "/home/pacecat/wangzn/M300-SDK/LDS-M300-E-20241029-115237.lhl";
 	BlueSeaLidarSDK::getInstance()->Init();
-	int devID = BlueSeaLidarSDK::getInstance()->AddLidar(lidar_addr, lidar_port, listen_port);
+	int devID = BlueSeaLidarSDK::getInstance()->AddLidar(lidar_addr, lidar_port, listen_port,ptp_enable,frame_package_num,sfp,dfp);
 	BlueSeaLidarSDK::getInstance()->SetLogDataCallback(devID, LogDataCallback, nullptr);
 
 	BlueSeaLidarSDK::getInstance()->ConnectLidar(devID);

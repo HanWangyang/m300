@@ -12,4 +12,16 @@
     topic_pointcloud: pointcloud
     use_sim_time: false
     ptp_enable: -1
+    frame_package_num: 180
+#sfp
+    sfp_enable : 0
+    window: 1
+    min_angle: 5.0
+    max_angle: 175.0
+    effective_distance: 5.0
+    #dfp
+    dfp_enable: 0
+    continuous_times: 30
+    dirty_factor: 0.01
+
 

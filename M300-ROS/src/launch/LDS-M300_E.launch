@@ -10,12 +10,23 @@
     <param name="output_custommsg" value="false"/>
 
     <param name="topic_imu" value="imu" />
-    <param name="output_imu" value="false"/>
+    <param name="output_imu" value="true"/>
    
     <param name="lidar_port" value="6543" />
     <param name="local_port" value="6668" />
-    <param name="lidar_ip" value="192.168.0.210" />
-    <param name="ptp_enable" value="1" />
+    <param name="lidar_ip" value="192.168.158.108" />
+    <param name="ptp_enable" value="0" />
+    <param name="frame_package_num" value="180" />
 
+    #sfp
+    <param name="sfp_enable" value="0" />
+    <param name="window" value="1" />
+    <param name="min_angle" value="5.0" />
+    <param name="max_angle" value="175.0" />
+    <param name="effective_distance" value="5.0" />
+    #dfp
+     <param name="dfp_enable" value="0" />
+    <param name="continuous_times" value="30" />
+    <param name="dirty_factor" value="0.01" />
   </node>
 </launch>
