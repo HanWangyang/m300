@@ -591,7 +591,7 @@ void BlueSeaLidarSDK::AddPacketToList(const BlueSeaLidarEthernetPacket *packet, 
 	{
 		LidarCloudPointData point;
 		double ang = PacketToPoints(data[i], point);
-		point.offset_time = packet->timestamp + i * packet->time_interval / 100.0 / (packet->dot_num - 1) - first_timestamp;
+		point.offset_time = packet->timestamp + i * packet->time_interval * 100.0 / (packet->dot_num - 1) - first_timestamp;
 		if (sfp.sfp_enable)
 		{
 			
