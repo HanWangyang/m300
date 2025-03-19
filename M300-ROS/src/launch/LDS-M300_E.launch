@@ -1,32 +1,39 @@
 <launch>
-  <node name="M300" pkg="bluesea_m300" type="bluesea_m300_node" output="screen">
+  <!-- Define all arguments -->
+  <arg name="frame_id" default="lidar_frame"/>
+  <arg name="imu_frame_id" default="imu_frame"/>
+  <arg name="lidar_ip" default="192.168.100.21"/>
+  <arg name="local_port" default="6661"/>
+  <arg name="node_name" default="m300_lidar_node"/>
+  <arg name="namespace" default="m300_lidar"/>
 
-    <param name="frame_id" value="map" />
-
-    <param name="topic_pointcloud" value="pointcloud" />
-    <param name="output_pointcloud" value= "true"/>
-
-    <param name="topic_custommsg" value="custommsg" />
-    <param name="output_custommsg" value="false"/>
-
-    <param name="topic_imu" value="imu" />
-    <param name="output_imu" value="true"/>
-   
-    <param name="lidar_port" value="6543" />
-    <param name="local_port" value="6668" />
-    <param name="lidar_ip" value="192.168.158.108" />
-    <param name="ptp_enable" value="0" />
-    <param name="frame_package_num" value="180" />
-
-    #sfp
-    <param name="sfp_enable" value="0" />
-    <param name="window" value="1" />
-    <param name="min_angle" value="5.0" />
-    <param name="max_angle" value="175.0" />
-    <param name="effective_distance" value="5.0" />
-    #dfp
-     <param name="dfp_enable" value="0" />
-    <param name="continuous_times" value="30" />
-    <param name="dirty_factor" value="0.01" />
-  </node>
+  <!-- Launch node in specified namespace -->
+  <group ns="$(arg namespace)">
+    <node name="$(arg node_name)" pkg="bluesea_m300" type="bluesea_m300_node" output="screen">
+      <param name="frame_id" value="$(arg frame_id)"/>
+      <param name="imu_frame_id" value="$(arg imu_frame_id)"/>
+      <param name="lidar_ip" value="$(arg lidar_ip)"/>
+      <param name="local_port" value="$(arg local_port)"/>
+      
+      <param name="topic_pointcloud" value="pointcloud"/>
+      <param name="output_pointcloud" value="true"/>
+      <param name="topic_custommsg" value="custommsg"/>
+      <param name="output_custommsg" value="false"/>
+      <param name="topic_imu" value="imu"/>
+      <param name="output_imu" value="true"/>
+      <param name="lidar_port" value="6543"/>
+      <param name="ptp_enable" value="0"/>
+      <param name="frame_package_num" value="180"/>
+      
+      <!-- Filter parameters -->
+      <param name="sfp_enable" value="0"/>
+      <param name="window" value="1"/>
+      <param name="min_angle" value="5.0"/>
+      <param name="max_angle" value="175.0"/>
+      <param name="effective_distance" value="5.0"/>
+      <param name="dfp_enable" value="0"/>
+      <param name="continuous_times" value="30"/>
+      <param name="dirty_factor" value="0.01"/>
+    </node>
+  </group>
 </launch>

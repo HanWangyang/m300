@@ -26,6 +26,7 @@
 typedef struct
 {
   std::string frame_id;
+  std::string imu_frame_id;
 
   ros::Publisher pub_pointcloud;
   std::string topic_pointcloud;
@@ -70,8 +71,9 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData
     {
       sensor_msgs::PointCloud msg;
       int N = data->dot_num;
-      msg.header.stamp.sec = data->timestamp / 1000000000;
-      msg.header.stamp.nsec = data->timestamp % 1000000000;
+      auto timestamp = ros::Time::now();
+      msg.header.stamp.sec = timestamp.sec;
+      msg.header.stamp.nsec = timestamp.nsec;
       msg.header.frame_id = argdata->frame_id;
       msg.points.resize(N);
       msg.channels.resize(1);
@@ -143,10 +145,11 @@ void ImuDataCallback(uint32_t handle, const uint8_t dev_type, LidarPacketData *d
       imu.linear_acceleration.y = p_imu_data->linear_acceleration_y;
       imu.linear_acceleration.z = p_imu_data->linear_acceleration_z;
 
-      uint64_t nanosec = data->timestamp;
-	  imu.header.frame_id = argdata->frame_id;
-      imu.header.stamp.sec = nanosec / 1000000000;
-      imu.header.stamp.nsec = nanosec % 1000000000;
+      // uint64_t nanosec = data->timestamp;
+      auto timestamp = ros::Time::now();
+	  imu.header.frame_id = argdata->imu_frame_id;
+      imu.header.stamp.sec = timestamp.sec;
+      imu.header.stamp.nsec = timestamp.nsec;
       argdata->pub_imu.publish(imu);
     }
   }
@@ -169,8 +172,11 @@ int main(int argc, char **argv)
   ros::NodeHandle nh("~");
   ArgData argdata;
 
-  nh.param("frame_id", argdata.frame_id, std::string("map"));
+  nh.param("frame_id", argdata.frame_id, std::string("lidar_frame"));
+  nh.param("imu_frame_id", argdata.imu_frame_id, std::string("imu_frame"));
 
+  // 使用绝对话题名称（以'/'开头）
+  std::string topic_prefix = "";  // 将在命名空间内发布
   nh.param("topic_pointcloud", argdata.topic_pointcloud, std::string("pointcloud"));
   nh.param("output_pointcloud", argdata.output_pointcloud, true);
 
@@ -201,15 +207,14 @@ int main(int argc, char **argv)
   nh.param("continuous_times", dfp.continuous_times, 30);
   nh.param("dirty_factor", dfp.dirty_factor, 0.005);
 
-
-
-
+  // 使用NodeHandle而不是带私有命名空间的NodeHandle来发布话题
+  ros::NodeHandle public_nh;  // 这将使用节点的命名空间，但不会添加私有节点名称
   if (argdata.output_pointcloud)
-    argdata.pub_pointcloud = nh.advertise<sensor_msgs::PointCloud2>(argdata.topic_pointcloud, 10);
+    argdata.pub_pointcloud = public_nh.advertise<sensor_msgs::PointCloud2>(argdata.topic_pointcloud, 10);
   if (argdata.output_custommsg)
-    argdata.pub_custommsg = nh.advertise<bluesea_m300::CustomMsg>(argdata.topic_custommsg, 10);
+    argdata.pub_custommsg = public_nh.advertise<bluesea_m300::CustomMsg>(argdata.topic_custommsg, 10);
   if (argdata.output_imu)
-    argdata.pub_imu = nh.advertise<sensor_msgs::Imu>(argdata.topic_imu, 10);
+    argdata.pub_imu = public_nh.advertise<sensor_msgs::Imu>(argdata.topic_imu, 10);
 
   BlueSeaLidarSDK::getInstance()->Init();
   int devID = BlueSeaLidarSDK::getInstance()->AddLidar(argdata.lidar_ip, argdata.lidar_port, argdata.local_port,argdata.ptp_enable,argdata.frame_package_num,sfp,dfp);

@@ -1,0 +1,39 @@
+<launch>
+  <!-- Arguments for the left lidar -->
+  <arg name="using_lidar_left" default="true"/>
+  <arg name="lidar_ip_left" default="192.168.100.21"/>
+  <arg name="pointcloud_frame_id_left" default="lidar_frame_left"/>
+  <arg name="imu_frame_id_left" default="imu_frame_left"/>
+  <arg name="local_port_left" default="6661"/>
+  <arg name="node_name_left" default="m300_lidar_left_node"/>
+  <arg name="namespace_left" default="m300_lidar_left"/>
+
+  <!-- Arguments for the right lidar -->
+  <arg name="using_lidar_right" default="true"/>
+  <arg name="lidar_ip_right" default="192.168.100.22"/>
+  <arg name="pointcloud_frame_id_right" default="lidar_frame_right"/>
+  <arg name="imu_frame_id_right" default="imu_frame_right"/>
+  <arg name="local_port_right" default="6662"/>
+  <arg name="node_name_right" default="m300_lidar_right_node"/>
+  <arg name="namespace_right" default="m300_lidar_right"/>
+
+  <!-- Include the original launch file for the left lidar -->
+  <include file="$(find bluesea_m300)/launch/LDS-M300_E.launch" if="$(arg using_lidar_left)">
+    <arg name="lidar_ip" value="$(arg lidar_ip_left)"/>
+    <arg name="frame_id" value="$(arg pointcloud_frame_id_left)"/>
+    <arg name="imu_frame_id" value="$(arg imu_frame_id_left)"/>
+    <arg name="local_port" value="$(arg local_port_left)"/>
+    <arg name="node_name" value="$(arg node_name_left)"/>
+    <arg name="namespace" value="$(arg namespace_left)"/>
+  </include>
+
+  <!-- Include the original launch file for the right lidar -->
+  <include file="$(find bluesea_m300)/launch/LDS-M300_E.launch" if="$(arg using_lidar_right)">
+    <arg name="lidar_ip" value="$(arg lidar_ip_right)"/>
+    <arg name="frame_id" value="$(arg pointcloud_frame_id_right)"/>
+    <arg name="imu_frame_id" value="$(arg imu_frame_id_right)"/>
+    <arg name="local_port" value="$(arg local_port_right)"/>
+    <arg name="node_name" value="$(arg node_name_right)"/>
+    <arg name="namespace" value="$(arg namespace_right)"/>
+  </include>
+</launch>
